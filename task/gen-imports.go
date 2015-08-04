@@ -24,10 +24,16 @@ var (
 	genPackage = flag.String("package", os.Getenv("GOPACKAGE"), "Go package name")
 )
 
+// If we don't include the comment for every single import line,
+// golint may complain about side effect imports in non-main,
+// non-test, packages. As there is no reasonable way for the user of
+// this code generation helper to work around that, we always include
+// the workaround.
 var gen = template.Must(template.New("gen").Parse(`package {{.Package}}
 
 import (
-{{range .Imports}}{{"\t"}}_ "{{.}}"
+{{range .Imports}}{{"\t"}}// Import for side effects.
+{{"\t"}}_ "{{.}}"
 {{end}})
 `))
 
