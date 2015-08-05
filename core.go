@@ -86,7 +86,16 @@ func Main(defaultConfig Config) error {
 		xproto.CwBackPixel, 0xffffff)
 	win.Stack(xproto.StackModeBelow)
 
-	// TODO how to properly request being ignored by xmonad
+	// http://standards.freedesktop.org/wm-spec/wm-spec-latest.html
+
+	if err := ewmh.WmWindowTypeSet(Xu, win.Id, []string{"_NET_WM_WINDOW_TYPE_DOCK"}); err != nil {
+		return fmt.Errorf("cannot set window to be a dock: %v", err)
+	}
+
+	if err := ewmh.WmStateReq(Xu, win.Id, ewmh.StateAdd, "_NET_WM_STATE_BELOW"); err != nil {
+		return fmt.Errorf("cannot lower window: %v", err)
+	}
+
 	if err := ewmh.WmNameSet(Xu, win.Id, "quobar"); err != nil {
 		return fmt.Errorf("cannot set window title: %v", err)
 	}
