@@ -30,6 +30,11 @@ func drawAll(ximg *xgraphics.Image, drawers []Drawer) error {
 	return nil
 }
 
+func stopMainloop(xu *xgbutil.XUtil, event interface{}) bool {
+	xevent.Quit(xu)
+	return true
+}
+
 // Main runs the main loop for quobar. It is available in library form
 // to keep github.com/tv42/quobar/cmd/quobar short and easy to copy
 // for editing.
@@ -39,6 +44,7 @@ func Main(defaultConfig Config) error {
 		return fmt.Errorf("cannot connect to X11: %v", err)
 	}
 	X := Xu.Conn()
+	defer X.Close()
 
 	setup := xproto.Setup(X)
 	screen := setup.DefaultScreen(X)
@@ -112,7 +118,14 @@ func Main(defaultConfig Config) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		defer xevent.Quit(Xu)
+		// xgbutil's quit mechanism is only meant to be used from the
+		// same goroutine where xevent.Main is running (from the
+		// callbacks). We'd really like to say `defer xevent.Quit(Xu)`
+		// here, but have to do this weird thing (and wait for the
+		// next event) to be goroutine safe.
+		//
+		// https://github.com/BurntSushi/xgbutil/issues/9
+		defer xevent.HookFun(stopMainloop).Connect(Xu)
 		defer close(errCh)
 		for {
 			ximg := xgraphics.New(Xu, image.Rect(0, 0, int(screen.WidthInPixels), height))
@@ -132,6 +145,6 @@ func Main(defaultConfig Config) error {
 			time.Sleep(1 * time.Second)
 		}
 	}()
-	xevent.Main(Xu)
+	go xevent.Main(Xu)
 	return <-errCh
 }
