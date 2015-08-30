@@ -7,6 +7,10 @@ from `dzen2`, `xmobar` and such is that it is completely and from the
 ground up explicitly graphical, and aims to take advantage of this
 fact.
 
+It's still pretty early in development.
+
+![A screenshot of the status bar](screenshot.png)
+
 ## Why use raw X11?
 
 Because QML wouldn't let me set strut hints.
