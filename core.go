@@ -127,8 +127,9 @@ func Main(defaultConfig Config) error {
 		// https://github.com/BurntSushi/xgbutil/issues/9
 		defer xevent.HookFun(stopMainloop).Connect(Xu)
 		defer close(errCh)
+		ximg := xgraphics.New(Xu, image.Rect(0, 0, int(screen.WidthInPixels), height))
+		defer ximg.Destroy()
 		for {
-			ximg := xgraphics.New(Xu, image.Rect(0, 0, int(screen.WidthInPixels), height))
 			draw.Draw(ximg, ximg.Bounds(), image.NewUniform(state.Config.Background), image.ZP, draw.Src)
 
 			if err := drawAll(ximg, drawers); err != nil {
