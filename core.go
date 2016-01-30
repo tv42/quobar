@@ -23,11 +23,11 @@ type Image interface {
 	SubImage(r image.Rectangle) image.Image
 }
 
-func drawAll(ximg Image, drawers []Drawer) error {
-	offset := image.Pt(ximg.Bounds().Max.X, 0).Div(len(drawers))
-	shape := image.Rect(0, 0, offset.X, ximg.Bounds().Max.Y)
+func drawAll(img Image, drawers []Drawer) error {
+	offset := image.Pt(img.Bounds().Max.X, 0).Div(len(drawers))
+	shape := image.Rect(0, 0, offset.X, img.Bounds().Max.Y)
 	for idx, drawer := range drawers {
-		sub := ximg.SubImage(shape.Add(offset.Mul(idx)))
+		sub := img.SubImage(shape.Add(offset.Mul(idx)))
 		if sub == nil {
 			return fmt.Errorf("buggy shape math: shape=%v offset=%v idx=%v", shape, offset, idx)
 		}
