@@ -7,6 +7,7 @@ import (
 	"image/draw"
 
 	"github.com/golang/freetype/raster"
+	"golang.org/x/image/math/fixed"
 )
 
 type Sparkline struct {
@@ -78,7 +79,7 @@ func (s *Sparkline) Draw(dst draw.Image) {
 		pt := s.scale(i+1, n, min, max, dx, dy)
 		q.Add1(pt)
 	}
-	const strokeWidth = raster.Fix32(5 << 8)
+	const strokeWidth = fixed.Int26_6(5 << 6)
 	r.AddStroke(q, strokeWidth, raster.RoundCapper, raster.RoundJoiner)
 	p.SetColor(s.fg)
 	r.Rasterize(p)
@@ -88,8 +89,8 @@ func (s *Sparkline) Draw(dst draw.Image) {
 	headPt := s.scale(len(s.data)-1, s.data[len(s.data)-1], min, max, dx, dy)
 	q.Start(headPt)
 	// miniscule nudge so something actually is output
-	q.Add1(headPt.Add(raster.Point{X: 1, Y: 1}))
-	const headWidth = raster.Fix32(8 << 8)
+	q.Add1(headPt.Add(fixed.Point26_6{X: 1, Y: 1}))
+	const headWidth = fixed.Int26_6(8 << 6)
 	r.AddStroke(q, headWidth, raster.RoundCapper, raster.RoundJoiner)
 	// TODO really decide between uint64 vs float32 vs uint32 etc
 	//	value := uint64((s.data[len(s.data)-1] - min) / max * float32(^uint64(0)))
@@ -100,13 +101,13 @@ func (s *Sparkline) Draw(dst draw.Image) {
 	draw.Draw(dst, bounds, tmp, image.ZP, draw.Over)
 }
 
-func (s *Sparkline) scale(idx int, n, min, max float32, dx, dy int) raster.Point {
-	// 24.8 format, so shift by 8
+func (s *Sparkline) scale(idx int, n, min, max float32, dx, dy int) fixed.Point26_6 {
+	// 26.6 format, so shift by 6
 	x := float32(idx) / float32(s.items) * float32(dx)
 	y := (1.0 - ((n - min) / max)) * float32(dy)
-	p := raster.Point{
-		X: raster.Fix32(x)<<8 | (raster.Fix32(x*256) & (1<<8 - 1)),
-		Y: raster.Fix32(y)<<8 | (raster.Fix32(y*256) & (1<<8 - 1)),
+	p := fixed.Point26_6{
+		X: fixed.Int26_6(x)<<6 | (fixed.Int26_6(x*64) & (1<<6 - 1)),
+		Y: fixed.Int26_6(y)<<6 | (fixed.Int26_6(y*64) & (1<<6 - 1)),
 	}
 	return p
 }
