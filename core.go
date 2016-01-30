@@ -15,7 +15,15 @@ import (
 	"github.com/BurntSushi/xgbutil/xwindow"
 )
 
-func drawAll(ximg *xgraphics.Image, drawers []Drawer) error {
+type Image interface {
+	draw.Image
+	// SubImage provides a sub image of Image without copying image
+	// data. The underlying type returned is expected to implement
+	// draw.Image.
+	SubImage(r image.Rectangle) image.Image
+}
+
+func drawAll(ximg Image, drawers []Drawer) error {
 	offset := image.Pt(ximg.Bounds().Max.X, 0).Div(len(drawers))
 	shape := image.Rect(0, 0, offset.X, ximg.Bounds().Max.Y)
 	for idx, drawer := range drawers {
@@ -23,7 +31,11 @@ func drawAll(ximg *xgraphics.Image, drawers []Drawer) error {
 		if sub == nil {
 			return fmt.Errorf("buggy shape math: shape=%v offset=%v idx=%v", shape, offset, idx)
 		}
-		if err := drawer.Draw(sub); err != nil {
+		dr, ok := sub.(draw.Image)
+		if !ok {
+			return fmt.Errorf("drawer subimage is not drawable: %v", drawer)
+		}
+		if err := drawer.Draw(dr); err != nil {
 			return fmt.Errorf("drawer failed: %v", err)
 		}
 	}
