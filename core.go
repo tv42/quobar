@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
+	"os"
 	"sort"
 	"time"
 
@@ -108,6 +109,10 @@ func Main(defaultConfig Config) error {
 
 	if err := ewmh.WmWindowTypeSet(Xu, win.Id, []string{"_NET_WM_WINDOW_TYPE_DOCK"}); err != nil {
 		return fmt.Errorf("cannot set window to be a dock: %v", err)
+	}
+
+	if err := ewmh.WmPidSet(Xu, win.Id, uint(os.Getpid())); err != nil {
+		return fmt.Errorf("cannot set pid: %v", err)
 	}
 
 	if err := ewmh.WmStateReq(Xu, win.Id, ewmh.StateAdd, "_NET_WM_STATE_BELOW"); err != nil {
