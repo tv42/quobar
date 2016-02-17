@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/BurntSushi/xgb/randr"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
 	"github.com/BurntSushi/xgbutil/ewmh"
@@ -62,8 +63,33 @@ func Main(defaultConfig Config) error {
 	setup := xproto.Setup(X)
 	screen := setup.DefaultScreen(X)
 
+	if err := randr.Init(X); err != nil {
+		return fmt.Errorf("initializing RandR: %v", err)
+	}
+	randrPrimary, err := randr.GetOutputPrimary(X, screen.Root).Reply()
+	if err != nil {
+		return fmt.Errorf("cannot get RandR primary: %v", err)
+	}
+	randrScreenResources, err := randr.GetScreenResourcesCurrent(X, screen.Root).Reply()
+	if err != nil {
+		return fmt.Errorf("cannot get RandR screen resources: %v", err)
+	}
+	randrOutput, err := randr.GetOutputInfo(X, randrPrimary.Output, randrScreenResources.ConfigTimestamp).Reply()
+	if err != nil {
+		return fmt.Errorf("cannot get RandR screen resources: %v", err)
+	}
+	randrCrtcInfo, err := randr.GetCrtcInfo(X, randrOutput.Crtc, randrScreenResources.ConfigTimestamp).Reply()
+	if err != nil {
+		return fmt.Errorf("cannot get RandR monitor info: %v", err)
+	}
+	var (
+		screenHeightInPixels      = randrCrtcInfo.Height
+		screenWidthInPixels       = randrCrtcInfo.Width
+		screenHeightInMillimeters = randrOutput.MmHeight
+	)
+
 	state := &State{
-		Resolution: NewResolution(screen.HeightInPixels, screen.HeightInMillimeters),
+		Resolution: NewResolution(screenHeightInPixels, screenHeightInMillimeters),
 		Config:     defaultConfig,
 	}
 	// TODO load config
@@ -100,8 +126,8 @@ func Main(defaultConfig Config) error {
 		return fmt.Errorf("cannot create X11 window: %v", err)
 	}
 	win.Create(Xu.RootWin(),
-		0, int(screen.HeightInPixels)-height,
-		int(screen.WidthInPixels), height,
+		0, int(screenHeightInPixels)-height,
+		int(screenWidthInPixels), height,
 		xproto.CwBackPixel, 0xffffff)
 	win.Stack(xproto.StackModeBelow)
 
@@ -144,7 +170,7 @@ func Main(defaultConfig Config) error {
 		// https://github.com/BurntSushi/xgbutil/issues/9
 		defer xevent.HookFun(stopMainloop).Connect(Xu)
 		defer close(errCh)
-		ximg := xgraphics.New(Xu, image.Rect(0, 0, int(screen.WidthInPixels), height))
+		ximg := xgraphics.New(Xu, image.Rect(0, 0, int(screenWidthInPixels), height))
 		defer ximg.Destroy()
 		for {
 			draw.Draw(ximg, ximg.Bounds(), image.NewUniform(state.Config.Background), image.ZP, draw.Src)

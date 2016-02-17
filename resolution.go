@@ -7,7 +7,7 @@ type Resolution float32
 
 // NewResolution computes the resolution of a screen with the given
 // dimensions.
-func NewResolution(pixels, mm uint16) Resolution {
+func NewResolution(pixels uint16, mm uint32) Resolution {
 	return Resolution(float32(pixels) / float32(mm))
 }
 
