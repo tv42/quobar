@@ -125,7 +125,7 @@ func Main(defaultConfig Config) error {
 	if err != nil {
 		return fmt.Errorf("cannot create X11 window: %v", err)
 	}
-	win.Create(Xu.RootWin(),
+	win.Create(screen.Root,
 		0, int(screenHeightInPixels)-height,
 		int(screenWidthInPixels), height,
 		xproto.CwBackPixel, 0xffffff)
