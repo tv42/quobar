@@ -10,13 +10,8 @@ import (
 	"bytes"
 	"fmt"
 	"image/draw"
-	"io"
-	"io/ioutil"
-	"os"
-	"path"
-	"strconv"
-	"strings"
 
+	"github.com/distatus/battery"
 	"github.com/tv42/quobar"
 	"github.com/tv42/quobar/draw/truetype"
 )
@@ -46,49 +41,21 @@ type batteries struct {
 	font  *truetype.Font
 }
 
-const sysfsDir = "/sys/class/power_supply"
-
-func readFloat(path string) (float64, error) {
-	buf, err := ioutil.ReadFile(path)
-	if err != nil {
-		return 0, err
-	}
-	s := string(buf)
-	s = strings.TrimSuffix(s, "\n")
-	return strconv.ParseFloat(s, 64)
-}
-
 func (p *batteries) Draw(dst draw.Image) error {
-	f, err := os.Open(sysfsDir)
+	// TODO handle >1 battery
+	bats, err := battery.GetAll()
 	if err != nil {
 		return fmt.Errorf("cannot access power supply state: %v", err)
 	}
-	defer f.Close()
 	buf := bytes.NewBufferString("bat:")
-	for {
-		fis, err := f.Readdir(10)
-		if err == io.EOF {
-			break
+	for i, bat := range bats {
+		if bat.Full == 0.0 {
+			return fmt.Errorf("battery #%d full energy level is zero", i)
 		}
-		if err != nil {
-			return fmt.Errorf("cannot list batteries: %v", err)
-		}
-		for _, fi := range fis {
-			if !strings.HasPrefix(fi.Name(), "BAT") {
-				continue
-			}
-			energyNow, err := readFloat(path.Join(sysfsDir, fi.Name(), "energy_now"))
-			if err != nil {
-				return fmt.Errorf("cannot fetch battery %q current energy level: %v", fi.Name(), err)
-			}
-			energyFull, err := readFloat(path.Join(sysfsDir, fi.Name(), "energy_full"))
-			if err != nil {
-				return fmt.Errorf("cannot fetch battery %q full energy level: %v", fi.Name(), err)
-			}
-			if energyFull == 0.0 {
-				return fmt.Errorf("battery %q full energy level is zero", fi.Name())
-			}
-			fmt.Fprintf(buf, " %.0f%%", energyNow/energyFull*100)
+		fmt.Fprintf(buf, " %.0f%%", bat.Current/bat.Full*100)
+		switch bat.State {
+		case battery.Charging:
+			fmt.Fprint(buf, " AC")
 		}
 	}
 	msg := buf.String()
