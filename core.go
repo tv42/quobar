@@ -1,6 +1,7 @@
 package quobar
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -8,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/BurntSushi/xgb"
 	"github.com/BurntSushi/xgb/randr"
 	"github.com/BurntSushi/xgb/xproto"
 	"github.com/BurntSushi/xgbutil"
@@ -49,6 +51,69 @@ func stopMainloop(xu *xgbutil.XUtil, event interface{}) bool {
 	return true
 }
 
+type outputInfo struct {
+	screenHeightInPixels      uint16
+	screenWidthInPixels       uint16
+	screenHeightInMillimeters uint32
+}
+
+var errUnplugged = errors.New("display is not connected")
+
+func getOutput(X *xgb.Conn, configTimestamp xproto.Timestamp, output randr.Output) (*outputInfo, error) {
+	randrOutput, err := randr.GetOutputInfo(X, output, configTimestamp).Reply()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get RandR screen resources: %v", err)
+	}
+
+	// is there a more direct way to detect unplugged monitors?
+	if randrOutput.MmHeight == 0 {
+		return nil, errUnplugged
+	}
+
+	randrCrtcInfo, err := randr.GetCrtcInfo(X, randrOutput.Crtc, configTimestamp).Reply()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get RandR monitor info: %v", err)
+	}
+
+	info := &outputInfo{
+		screenHeightInPixels:      randrCrtcInfo.Height,
+		screenWidthInPixels:       randrCrtcInfo.Width,
+		screenHeightInMillimeters: randrOutput.MmHeight,
+	}
+	return info, nil
+}
+
+func findOutput(X *xgb.Conn, screen *xproto.ScreenInfo) (*outputInfo, error) {
+	randrScreenResources, err := randr.GetScreenResourcesCurrent(X, screen.Root).Reply()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get RandR screen resources: %v", err)
+	}
+
+	outputs := make([]randr.Output, 0, 1+len(randrScreenResources.Outputs))
+
+	randrPrimary, err := randr.GetOutputPrimary(X, screen.Root).Reply()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get RandR primary: %v", err)
+	}
+	if randrPrimary.Output != 0 {
+		outputs = append(outputs, randrPrimary.Output)
+	}
+
+	outputs = append(outputs, randrScreenResources.Outputs...)
+
+	for _, output := range outputs {
+		info, err := getOutput(X, randrScreenResources.ConfigTimestamp, output)
+		if err == errUnplugged {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		return info, nil
+	}
+	return nil, errors.New("cannot find any plugged-in output")
+}
+
 // Main runs the main loop for quobar. It is available in library form
 // to keep github.com/tv42/quobar/cmd/quobar short and easy to copy
 // for editing.
@@ -66,30 +131,14 @@ func Main(defaultConfig Config) error {
 	if err := randr.Init(X); err != nil {
 		return fmt.Errorf("initializing RandR: %v", err)
 	}
-	randrPrimary, err := randr.GetOutputPrimary(X, screen.Root).Reply()
+
+	info, err := findOutput(X, screen)
 	if err != nil {
-		return fmt.Errorf("cannot get RandR primary: %v", err)
+		return fmt.Errorf("choosing monitor to display on: %v", err)
 	}
-	randrScreenResources, err := randr.GetScreenResourcesCurrent(X, screen.Root).Reply()
-	if err != nil {
-		return fmt.Errorf("cannot get RandR screen resources: %v", err)
-	}
-	randrOutput, err := randr.GetOutputInfo(X, randrPrimary.Output, randrScreenResources.ConfigTimestamp).Reply()
-	if err != nil {
-		return fmt.Errorf("cannot get RandR screen resources: %v", err)
-	}
-	randrCrtcInfo, err := randr.GetCrtcInfo(X, randrOutput.Crtc, randrScreenResources.ConfigTimestamp).Reply()
-	if err != nil {
-		return fmt.Errorf("cannot get RandR monitor info: %v", err)
-	}
-	var (
-		screenHeightInPixels      = randrCrtcInfo.Height
-		screenWidthInPixels       = randrCrtcInfo.Width
-		screenHeightInMillimeters = randrOutput.MmHeight
-	)
 
 	state := &State{
-		Resolution: NewResolution(screenHeightInPixels, screenHeightInMillimeters),
+		Resolution: NewResolution(info.screenHeightInPixels, info.screenHeightInMillimeters),
 		Config:     defaultConfig,
 	}
 	// TODO load config
@@ -126,8 +175,8 @@ func Main(defaultConfig Config) error {
 		return fmt.Errorf("cannot create X11 window: %v", err)
 	}
 	win.Create(screen.Root,
-		0, int(screenHeightInPixels)-height,
-		int(screenWidthInPixels), height,
+		0, int(info.screenHeightInPixels)-height,
+		int(info.screenWidthInPixels), height,
 		xproto.CwBackPixel, 0xffffff)
 	win.Stack(xproto.StackModeBelow)
 
@@ -170,7 +219,7 @@ func Main(defaultConfig Config) error {
 		// https://github.com/BurntSushi/xgbutil/issues/9
 		defer xevent.HookFun(stopMainloop).Connect(Xu)
 		defer close(errCh)
-		ximg := xgraphics.New(Xu, image.Rect(0, 0, int(screenWidthInPixels), height))
+		ximg := xgraphics.New(Xu, image.Rect(0, 0, int(info.screenWidthInPixels), height))
 		defer ximg.Destroy()
 		for {
 			draw.Draw(ximg, ximg.Bounds(), image.NewUniform(state.Config.Background), image.ZP, draw.Src)
