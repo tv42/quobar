@@ -21,15 +21,17 @@ func colorEq(a, b color.Color) bool {
 }
 
 func Image(img image.Image) error {
-	pc, _, _, ok := runtime.Caller(1)
-	if !ok {
+	callers := make([]uintptr, 1)
+	n := runtime.Callers(2, callers)
+	if n < 1 {
 		return errors.New("unknown caller")
 	}
-	fn := runtime.FuncForPC(pc)
-	if fn == nil {
-		return fmt.Errorf("caller address not known: %v", pc)
+	frames := runtime.CallersFrames(callers)
+	frame, _ := frames.Next()
+	name := frame.Function
+	if name == "" {
+		return fmt.Errorf("caller address not known: %v", callers)
 	}
-	name := fn.Name()
 	idx := strings.LastIndex(name, ".")
 	if idx == -1 {
 		return fmt.Errorf("cannot determine package: %q", name)
