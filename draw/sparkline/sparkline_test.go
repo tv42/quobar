@@ -5,9 +5,36 @@ import (
 	"image/color"
 	"testing"
 
+	"github.com/tv42/quobar/blend"
 	"github.com/tv42/quobar/draw/sparkline"
 	"github.com/tv42/quobar/internal/approve"
 )
+
+var (
+	white  = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	green  = color.RGBA{R: 0, G: 255, B: 0, A: 255}
+	yellow = color.RGBA{R: 255, G: 255, B: 0, A: 255}
+	red    = color.RGBA{R: 255, G: 0, B: 0, A: 255}
+)
+
+var trafficLights = []blend.Threshold{
+	{
+		Max:   1024,
+		Color: white,
+	},
+	{
+		Max:   768,
+		Color: green,
+	},
+	{
+		Max:   512,
+		Color: yellow,
+	},
+	{
+		Max:   256,
+		Color: red,
+	},
+}
 
 func TestSimple(t *testing.T) {
 	t.Parallel()

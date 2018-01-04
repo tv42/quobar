@@ -1,4 +1,4 @@
-package sparkline
+package blend
 
 import (
 	"image/color"

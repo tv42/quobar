@@ -7,6 +7,7 @@ import (
 	"image/draw"
 
 	"github.com/golang/freetype/raster"
+	"github.com/tv42/quobar/blend"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -14,10 +15,10 @@ type Sparkline struct {
 	items      int
 	data       []float32
 	fg         color.Color
-	thresholds []Threshold
+	thresholds []blend.Threshold
 }
 
-func New(items int, fg color.Color, thresholds []Threshold) *Sparkline {
+func New(items int, fg color.Color, thresholds []blend.Threshold) *Sparkline {
 	s := &Sparkline{
 		items:      items,
 		fg:         fg,
@@ -95,7 +96,7 @@ func (s *Sparkline) Draw(dst draw.Image) {
 	// TODO really decide between uint64 vs float32 vs uint32 etc
 	//	value := uint64((s.data[len(s.data)-1] - min) / max * float32(^uint64(0)))
 	value := uint64(s.data[len(s.data)-1])
-	headColor := PickColor(s.thresholds, value)
+	headColor := blend.PickColor(s.thresholds, value)
 	p.SetColor(headColor)
 	r.Rasterize(p)
 	draw.Draw(dst, bounds, tmp, image.ZP, draw.Over)

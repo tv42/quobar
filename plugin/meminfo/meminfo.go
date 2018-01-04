@@ -12,6 +12,7 @@ import (
 
 	"github.com/guillermo/go.procmeminfo"
 	"github.com/tv42/quobar"
+	"github.com/tv42/quobar/blend"
 	"github.com/tv42/quobar/draw/sparkline"
 )
 
@@ -28,7 +29,7 @@ var (
 	yellow = color.RGBA{R: 255, G: 255, B: 0, A: 255}
 	red    = color.RGBA{R: 255, G: 0, B: 0, A: 255}
 
-	trafficLights = []sparkline.Threshold{
+	trafficLights = []blend.Threshold{
 		{
 			Max:   100,
 			Color: white,

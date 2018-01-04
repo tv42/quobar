@@ -1,4 +1,4 @@
-package sparkline
+package blend
 
 import (
 	"image/color"
@@ -10,8 +10,8 @@ func blend(a, b uint32, percentage float32) uint16 {
 	return uint16(float32(a)*(1.0-percentage) + float32(b)*percentage)
 }
 
-// Gradient picks a color that's somewhere in between a and b,
-// depending on percentage. 0.0 results in a, 1.0 results in b.
+// Blend picks a color that's somewhere in between a and b, depending
+// on percentage. 0.0 results in a, 1.0 results in b.
 func Gradient(a, b color.Color, percentage float32) color.Color {
 	switch {
 	case percentage < 0.0:

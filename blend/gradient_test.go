@@ -1,10 +1,10 @@
-package sparkline_test
+package blend_test
 
 import (
 	"image/color"
 	"testing"
 
-	"github.com/tv42/quobar/draw/sparkline"
+	"github.com/tv42/quobar/blend"
 )
 
 type colorTest struct {
@@ -51,7 +51,7 @@ func TestGradientEdgeCases(t *testing.T) {
 		},
 	}
 	for idx, test := range tests {
-		c := sparkline.Gradient(test.a, test.b, test.percentage)
+		c := blend.Gradient(test.a, test.b, test.percentage)
 		if g, e := c, color.RGBA64Model.Convert(test.result); g != e {
 			t.Errorf("#%d: %f mix of %v..%v: %v != %v", idx, test.percentage, test.a, test.b, g, e)
 		}
@@ -74,7 +74,7 @@ func TestGradientMixing(t *testing.T) {
 		},
 	}
 	for idx, test := range tests {
-		c := sparkline.Gradient(test.a, test.b, test.percentage)
+		c := blend.Gradient(test.a, test.b, test.percentage)
 		if g, e := c, test.result; g != e {
 			t.Errorf("#%d: %f mix of %v..%v: %v != %v", idx, test.percentage, test.a, test.b, g, e)
 		}
