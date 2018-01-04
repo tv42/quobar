@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	roboto     = "/usr/share/fonts/truetype/roboto/Roboto-Regular.ttf"
+	roboto     = "/usr/share/fonts/truetype/roboto/hinted/Roboto-Regular.ttf"
 	liberation = "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"
 )
 

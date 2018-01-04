@@ -22,7 +22,7 @@ import (
 
 var defaultConfig = quobar.Config{
 	HeightMillimeters: 3,
-	FontPath:          "/usr/share/fonts/truetype/roboto/Roboto-Regular.ttf",
+	FontPath:          "/usr/share/fonts/truetype/roboto/hinted/Roboto-Regular.ttf",
 	Foreground:        color.RGBA{R: 0xa0, G: 0xa0, B: 0xa0, A: 0xff},
 	Background:        color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x00},
 }
