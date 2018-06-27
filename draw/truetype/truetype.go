@@ -38,7 +38,7 @@ import (
 	"image/draw"
 	"io/ioutil"
 
-	"azul3d.org/native/freetype.v1"
+	"github.com/azul3d/engine/native/freetype"
 )
 
 // Font is a Truetype font loaded and ready for use.
